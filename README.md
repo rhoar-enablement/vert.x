@@ -1,1 +1,1 @@
-# vert.x
+This repository is the used to develop training materials for the Vert.x of the Red Hat OpenShift Application Runtimes. 
