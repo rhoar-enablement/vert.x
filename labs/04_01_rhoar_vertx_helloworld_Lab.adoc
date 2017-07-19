@@ -1,0 +1,304 @@
+:scrollbar:
+:data-uri:
+:toc2:
+
+= Red Hat OpenShift Application Runtimes - Vert.x Hello World lab
+
+In this lab you will learn how to develop a Vert.x Hello World microservice. You will also deploy this microservice to the OpenShift Container Platform.
+
+== Set up the lab environment
+
+TODO: instructions to clone and import the application skeleton into the IDE
+
+TODO: access to OCP environment
+
+== Application architecture
+
+TODO: Discuss architecture
+
+=== Project structure
+
+TODO: describe project structure
+
+TODO: review maven pom.xml
+
+The application is built with maven. From the command line:
+
+----
+$ mvn clean package
+----
+
+== Hello HTTP verticle
+
+This verticle is responsible returning a hello world message.
+
+. In your IDE, create the following file:
+
+${project-directory}/com/redhat/gpte/training/hello/HelloHttpVerticle.java
+
+----
+
+package com.redhat.gpte.training.hello.HelloHttpVerticle;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.*;
+
+public class HelloHttpVerticle extends AbstractVerticle {
+
+  static final String HOSTNAME = System.getenv("HOSTNAME");
+
+  @Override
+  public void start() {
+    Router router = Router.router(vertx);
+
+    router.get("/").handler(this::hello);
+    router.get("/:name").handler(this::hello);
+
+    vertx.createHttpServer()
+    .requestHandler(router::accept)
+    .listen(8080);
+  }
+
+  private void hello(RoutingContext rc) {
+    String message = "hello";
+
+    if (rc.pathParam("name") != null) {
+      message += " " + rc.pathParam("name");
+    }
+
+    JsonObject json = new JsonObject().put("message", message).put("served-by", HOSTNAME);
+
+    rc.response()
+    .putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+    .end(json.encode());
+  }
+
+}
+
+----
+
+. Execute a maven build to make sure the class compiles.
+
+=== Packaging
+
+A convenient way to package and run Vert.x application is to build a fat jar (or uber-jar), which contains all the dependencies needed to run the application. +
+The fat jar is executable, and can be launched with `java -jar <application.jar>`
+
+When using maven, the Fabric8 Vert.x plugin (https://vmp.fabric8.io/) can be used to build the fat jar. +
+The Fabric8 Vert.x plugin adds MANIFEST.MF entries during the packaging process. These entries control how the application is launched. +
+The plugin adds the following entries to the MANIFEST.MF:
+
+* Main-Class : The main class used to start the application, defaults to _io.vertx.core.Launcher_
+* Main-Verticle : The main verticle, i.e. the entry point of your application
+
+{empty} +
+
+. Review the `pom.xml` file, more specifically the configuration of the Fabric8 Vert.x plugin
+* The `vert.x:package` goal is attached to the `package` maven goal
+* The main verticle is set as a property `vertx.verticle` in the pom file.
+. Build the application with maven. From the command line:
++
+----
+$ mvn clean package
+----
+
+=== Deployment with Fabric8 Maven plugin
+
+The fabric8-maven-plugin brings Java applications on to Kubernetes and OpenShift. It provides a tight integration into Maven and benefits from the build configration already provided. This plugin focus on two tasks: Building Docker images and creating Kubernetes and OpenShift resource descriptors.
+
+The fabric8-maven-plugin uses the binary source build type, i.e. the artifact to be deployed is injected into the container from the local file system. 
+
+The plugin uses an auto-detection mechanism to determine which image to use for the application. If needed, this mechanism can be overridden in the plugin configuration, e.g. if you want to use another Docker image to run your application. For a Vert.x application, the fabric8-maven-plugin uses the `fabric8/s2i-java:2.0` images as build image.
+
+In the catalog project source code, the fabric8-maven-plugin is configured in the `OpenShift` Maven profile in the pom.xml file
+
+[source,xml]
+----
+  <profiles>
+    <profile>
+      <id>openshift</id>
+      <properties>
+        <test.to.exclude/>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>fabric8-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>fmp</id>
+                <goals>
+                  <goal>resource</goal>
+                  <goal>build</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+----
+
+The fabric8-maven-plugin can be configured with external configuration in the form of YAML resource descriptors which are located in the `src/main/fabric8` directory. The coolstore catalog project uses this technique to define a Router object for the application, and to configure the health check probes on the Deployment object.
+
+. Make sure you are logged in into OpenShift and using the `helloworld-http` project.
++
+----
+$ oc project helloworld-http
+----
+
+. Deploy the helloworld-http application on OpenShift:
++
+----
+$ mvn clean fabric8:deploy -Popenshift
+----
+
+. Check the status of the deployment in the OpenShift Web console, or using the CLI.
++
+----
+$ oc get pods
+----
++
+----
+NAME                          READY     STATUS      RESTARTS   AGE
+helloworld-http-1-w132w       1/1       Running     0          1h
+----
++
+. Check the log of application pod to make sure that the application did start up correctly:
++
+----
+$ oc logs -f helloworld-http-1-p1wx1
+----
++
+----
+Starting the Java application using /opt/run-java/run-java.sh ...
+...
+----
+
+=== Testing the helloworld-http application
+
+You can test the helloworld application using curl.
+
+. TODO: Get the URL of the helloworld application
++
+
+----
+$ curl -X GET "$HELLOWORLD_URL/John"
+----
++
+----
+{"message":"hello John","served-by": "hello-microservice-1-9r8uv"}
+----
+
+=== Scaling Up and Scaling Down
+
+OpenShift gives you the ability to scale up and scale down your application. You can make use of manual scaling or auto-scaling. In this section, we will manually scale our application.
+
+==== Scaling Up
+You can set the number of replicas using the oc command line:
+
+----
+# scale up to 3 replicas
+oc scale --replicas=3 dc hello-microservice 
+----
+
+NOTE: You can also set the number of replicas using the OpenShift dashboard.
+
+Now, let's test our application
+
+----
+$ curl -X GET "$HELLOWORLD_URL/John"
+----
+
+You should see something like:
+
+----
+{"message":"hello John","served-by": "hello-microservice-1-9r8uv"}
+----
+
+If you refresh several times, you will see different values for "served-by". Your request is being handled by a different instances. OpenShift balances the loaded between the different instances.
+
+==== Scaling Down
+
+Let's scale down our application to a single replica.
+
+----
+# scale up to 1 replicas
+oc scale --replicas=1 dc hello-microservice 
+----
+
+Now, test the application.
+
+----
+$ curl -X GET "$HELLOWORLD_URL/John"
+----
+
+You should see something like:
+
+----
+{"message":"hello John","served-by": "hello-microservice-1-9r8uv"}
+----
+
+If you refresh several times, you will see the same value for "served-by". This confirms that only one instance is available to handle the request.
+
+
+=== Health Check
+
+In software systems, components can become unhealthy due to transient issues (such as temporary connectivity loss), configuration errors, or problems with external dependencies. 
+
+OpenShift provides support for detecting and handling unhealthy containers. OpenShift supports readiness checks and liveness checks.
+
+Readiness checks determines if a service is ready to handle requests. OpenShift pings the service's readiness until a service is ready.
+
+Liveness checks determines where a service is alive. OpenShift periodically pings the service for a liveness check. If a service does not respond positively to the liveness check then the service is restarted.
+
+Let's add support for health checks. We'll use the same endpoint for both readiness and liveness check.
+
+The Fabric8 Maven plug-in is configured to use /health for the readiness and health checks.
+
+. Edit the code for HelloHttpVerticle.java
+
+. Add the following code for health check
+
+----
+  @Override
+  public void start() {
+
+    Router router = Router.router(vertx);
+
+    router.get("/health").handler(
+      HealthCheckHandler.create(vertx)
+      .register("http-server-running",
+      future -> future.complete(
+      started ? Status.OK() : Status.KO())));
+
+    router.get("/").handler(this::hello);
+
+    router.get("/:name").handler(this::hello);
+
+    vertx.createHttpServer()
+      .requestHandler(router::accept)
+      .listen(8080, ar -> started = ar.succeeded());
+
+  }
+----
+
+. Deploy the helloworld-http application on OpenShift:
++
+----
+$ mvn clean fabric8:deploy -Popenshift
+----
+
+Once this app is deployed, then all future deployments will use the readiness check to avoid downtime.
+
+OpenShift will route requests to the the pod once it is ready. At that point, OpenShift will shutdown the old pod. Also, when we scale up, OpenShift will only route traffic to pods that pass the readiness check.
+ 
+
+
+
+
+
