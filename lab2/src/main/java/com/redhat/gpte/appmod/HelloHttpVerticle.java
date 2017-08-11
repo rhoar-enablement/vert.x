@@ -11,8 +11,10 @@ public class HelloHttpVerticle extends AbstractVerticle {
     @Override
     public void start() {
         Router router = Router.router(vertx);
+
         router.get("/").handler(this::hello);
         router.get("/:name").handler(this::hello);
+        
         vertx.createHttpServer()
             .requestHandler(router::accept)
             .listen(8080);
@@ -20,12 +22,15 @@ public class HelloHttpVerticle extends AbstractVerticle {
 
     private void hello(RoutingContext rc) {
         String message = "Hello";
+
         if (rc.pathParam("name") != null) {
             message += " " + rc.pathParam("name");
         }
+
         JsonObject json = new JsonObject()
             .put("message", message)
             .put("served-by", System.getenv("HOSTNAME"));
+            
         rc.response()
             .putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
             .end(json.encode());
