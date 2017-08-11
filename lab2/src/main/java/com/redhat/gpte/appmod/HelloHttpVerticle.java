@@ -1,4 +1,4 @@
-package io.vertx.book.openshift;
+package com.redhat.gpte.appmod;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpHeaders;
@@ -19,7 +19,7 @@ public class HelloHttpVerticle extends AbstractVerticle {
     }
 
     private void hello(RoutingContext rc) {
-        String message = "YoYo!!!";
+        String message = "Hello";
         if (rc.pathParam("name") != null) {
             message += " " + rc.pathParam("name");
         }
