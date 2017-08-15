@@ -122,6 +122,10 @@ Both the {app-name}-greeting and {app-name}-name pods should have a status of Ru
 
 ----
 $ oc get routes
+
+NAME               HOST/PORT                                                                     PATH      SERVICES           PORT      TERMINATION   WILDCARD
+greeting-service   greeting-service-circuitbreaker-demo-user30.apps.83de.openshift.opentlc.com             greeting-service   8080                    None
+name-service       name-service-circuitbreaker-demo-user30.apps.83de.openshift.opentlc.com                 name-service       8080                    None
 ----
 
 * Once you have the Eclipse Vert.x booster deployed, you have the following services running:
@@ -155,12 +159,12 @@ the `/api/cb-state` endpoint, which returns the state of the Circuit Breaker. Th
 * The following steps demonstrate how to verify the service availability, simulate a failure and receive a fallback response.
 
 NOTE:
-  The following steps use the command line to interact with the service. Alternatively, you can use the web interface to perform the same steps.
+  The following steps use the command line to interact with the service. Alternatively, you can use the web interface to perform the same steps. The web interface is available at: http://MY_APP_NAME-greeting-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/
 
 * Use curl to execute a GET request against the {app-name}-greeting service. You can also use the Invoke button in the web interface to do this.
 
 ----
-$ curl http://MY_APP_NAME-greeting-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api/greeting
+$ curl ${THE-GREETING-APP}/api/greeting
 
 {"content":"Hello, World!"}
 ----
@@ -168,13 +172,13 @@ $ curl http://MY_APP_NAME-greeting-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api
 * To simulate the failure of the `{app-name}-name` service, execute an HTTP PUT request against the /api/state endpoint of the `{app-name}-name` service to set its state to fail.
 
 ----
-$ curl -X PUT -H "Content-Type: application/json" -d '{"state": "fail"}' http://MY_APP_NAME-name-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api/state
+$ curl -X PUT -H "Content-Type: application/json" -d '{"state": "fail"}' ${THE-NAME-APP}/api/state
 ----
 
 * The Circuit Breaker issues the fallback response when you invoke the `/api/greeting` endpoint.
 
 ----
-$ curl http://{app-name}-greeting-{project-name}.{oso-route-hostname}/api/greeting
+$ curl ${THE-GREETING-APP}/api/greeting
 
 {"content":"Hello, Fallback!"}
 ----
@@ -182,13 +186,13 @@ $ curl http://{app-name}-greeting-{project-name}.{oso-route-hostname}/api/greeti
 * Restore the name {app-name}-name service to availability, execute an HTTP PUT request against the /api/state endpoint of the {app-name}-name service to set its state back to ok.
 
 ----
-$ curl -X PUT -H "Content-Type: application/json" -d '{"state": "ok"}' http://MY_APP_NAME-name-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api/state
+$ curl -X PUT -H "Content-Type: application/json" -d '{"state": "ok"}' ${THE-NAME-APP}/api/state
 ----
 
 * Invoke the /api/greeting endpoint again. If the {app-name}-name service is available, you should receive the Hello World! greeting as the response:
 
 ----
-$ curl http://MY_APP_NAME-greeting-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api/greeting
+$ curl ${THE-GREETING-APP}/api/greeting
 
 {"content":"Hello, World!"}
 ----
@@ -228,17 +232,6 @@ hystrix-dashboard   hystrix-dashboard-{project-name}.{osl-route-hostname}       
 To use the Dashboard to monitor the `{app-name}-greeting` service, replace the default event stream address with the following address and click the _Monitor Stream_ button.
 
 ----
-http://{app-name}-greeting/hystrix.stream
+http://${THE-GREETING-APP}/hystrix.stream
 ----
-
-
-
-
-
-
- 
-
-
-
-
 
