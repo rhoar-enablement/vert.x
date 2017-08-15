@@ -1,0 +1,253 @@
+:scrollbar:
+:data-uri:
+:toc2:
+
+= Red Hat OpenShift Application Runtimes - Vert.x Circuit Breaker lab
+
+This lab shows you how to implement a Circuit Breaker and Fallback pattern in your services.
+
+This demonstrates a generic pattern for reporting the failure of a service and then limiting access to the failed service until it becomes available to handle requests. This helps prevent cascading failure in other services that depend on the failed services for functionality.
+
+== About Circuit Breaker
+
+The Circuit Breaker is a pattern intended to mitigate the impact of network failure and high latency on service architectures where services synchronously invoke other services. In such cases, if one of the services becomes unavailable due to network failure or incurs unusually high latency values due to overwhelming traffic, other services attempting to call its endpoint may end up exhausting critical resources in an attempt to reach it, rendering themselves unusable. This condition is also known as cascading failure and can render the entire microservice architecture unusable.
+
+Essentially, the Circuit Breaker acts as a proxy between a protected function and a remote function, which monitors for failures. Once the failures reach a certain threshold, the circuit breaker trips, and all further calls to the circuit breaker return with an error or a predefined fallback response, without the protected call being made at all. The Circuit Breaker usually also contain an error reporting mechanism that notifies you when the Circuit Breaker trips.
+
+== Why is Circuit Breaker Important
+
+In an architecture where multiple services depend on each other for functionality, a failure in one service can rapidly propagate to its dependent services, causing the entire architecture to collapse. Implementing a Circuit Breaker pattern helps prevent this. With the Circuit Breaker pattern implemented, a service client invokes a remote service endpoint via a proxy at regular intervals. 
+
+If the calls to the remote service endpoint fail repeatedly and consistently, the Circuit Breaker trips, making all calls to the service fail immediately over a set timeout period and returns a predefined fallback response. When the timeout period expires, a limited number of test calls are allowed to pass through to the remote service to determine whether it has healed, or remains unavailable. 
+
+If these test calls fail, the Circuit Breaker keeps the service unavailable and keeps returning the fallback responses to incoming calls. If the test calls succeed, the Circuit Breaker closes, fully enabling traffic to reach the remote service again.
+
+:numbered:
+
+== Find lab5 project files
+
+Each lab in this course is housed in separate directories. Using the command line, find and observe
+the files for this lab:
+
+    cd $HOME/vert.x/lab5
+
+IMPORTANT: Be sure to replace `$HOME` with the directory you chose to put the content in previous labs.
+
+== Open `lab5` using the IDE
+
+* Use your favorite IDE and open the project files for lab5 (maven project). 
+
+Once loaded, you should see the lab files and be able to navigate amongst the files. The components of this first project are laid out in different subdirectories according to Maven best practices:
+
+* `pom.xml` - The Maven project file
+* `src/main/java` - The source code to the project
+* `src/main/resources` - The static resource files referenced in the code
+
+== Review code for our HTTP verticle
+
+This verticle returns a hello world message. The verticle supports health checks and internal it uses a boolean variable to simulate its health.
+
+* In your IDE, open the file: `src/main/java/io.openshift.booster/HttpApplication.java`
+
+* Review the contents of this file
+
+=== Review Maven POM file
+
+. Review the `pom.xml` file, more specifically the configuration of the Fabric8 Vert.x plugin
+* The `vert.x:package` goal is attached to the `package` maven goal
+* The main verticle is set as a property `vertx.verticle` in the pom file.
+. Build the application with maven. From the command line:
++
+----
+$ mvn clean package
+----
+
+== Login to OpenShift via the CLI
+
+* If you are not logged into OpenShift, do so now:
+
+-----
+$ oc login ${YOUR-OPENSHIFT-SERVER} -u USER -p PASS
+-----
+
+Replace `${YOUR-OPENSHIFT-SERVER}` with the server name for your training environment. Be sure to replace `USER` and `PASS` with your supplied credentials and accept any security exceptions (which is never
+a good idea in a production scenario, but is fine for this lab).
+
+You should get a `Login successful` message indicating you've successfully logged in.
+
+== Create a new project
+
+OpenShift separates different projects using the concept of a _project_ (also known as a https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/[Kubernetes Namespace]).
+
+To house your project and keep it separate from other users, create a new project using your username as part of the project:
+
+* Create a new project
+
+-----
+$ oc new-project circuitbreaker-demo-userXX
+-----
+
+Be sure to replace `userXX` with your username.
+
+== Build and Deploy service to OpenShift
+
+It's time to build and deploy our service! To build and deploy:
+
+-----
+$ mvn clean fabric8:deploy -Popenshift
+-----
+
+* Check the status of your booster and ensure your pod is running.
+
+----
+$ oc get pods -w
+
+NAME                            READY     STATUS      RESTARTS  AGE
+{app-name}-greeting-1-p2x5m     1/1       Running   0           17s
+{app-name}-greeting-1-deploy    0/1       Completed 0           22s
+{app-name}-name-1-7mffj         1/1       Running   0           14s
+{app-name}-name-1-deploy        0/1       Completed 0           28s
+----
+
+Both the {app-name}-greeting and {app-name}-name pods should have a status of Running once they are fully deployed and started. You should also wait for your pods to be ready before proceeding, which is shown in the READY column. For example, PROJECT_NAME-1-aaaaa is ready when the READY column is 1/1.
+
+== Testing the application
+
+* To exercise the application from outside of OpenShift, first discover the external hostname:
+
+----
+$ oc get routes
+----
+
+The hostname of the service will be different depending on your cluster, but in this example the hostname
+is `healthcheck-demo-user30.apps.83de.openshift.opentlc.com`.
+
+* Once you have the Eclipse Vert.x booster deployed, you have the following services running:
+
+{app-name}-name
+
+    Exposes the following endpoints:
+
+        the /api/name endpoint, which returns a name when this service is working, and an error when this service is set up to demonstrate failure.
+
+        the /api/state endpoint, which controls the behavior of the /api/name endpoint and determines whether the service works correctly or demonstrates failure.
+
+{app-name}-greeting
+
+    Exposes the following endpoints:
+
+        the /api/greeting endpoint that you can call to get a personalized greeting response.
+
+        When you call the /api/greeting endpoint, it issues a call against the /api/name endpoint of the {app-name}-name service as part of processing your request. The call made against the /api/name endpoint is protected by the Circuit Breaker.
+
+        If the remote endpoint is available, it responds with an HTTP code 200 and you receive the following greeting:
+
+        {"content":"Hello, World!"}
+
+        If the remote endpoint is unavailable, it responds with an HTTP code 500 and you receive a predefined fallback response:
+
+        {"content":"Hello, Fallback!"}
+
+        the /api/cb-state endpoint, which returns the state of the Circuit Breaker. The state can be open or closed.
+
+* The following steps demonstrate how to verify the service availability, simulate a failure and receive a fallback response.
+
+NOTE:
+  The following steps use the command line to interact with the service. Alternatively, you can use the web interface to perform the same steps.
+
+* Use curl to execute a GET request against the {app-name}-greeting service. You can also use the Invoke button in the web interface to do this.
+
+----
+$ curl http://MY_APP_NAME-greeting-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api/greeting
+
+{"content":"Hello, World!"}
+----
+
+* To simulate the failure of the {app-name}-name service, execute an HTTP PUT request against the /api/state endpoint of the {app-name}-name service to set its state to fail.
+
+----
+$ curl -X PUT -H "Content-Type: application/json" -d '{"state": "fail"}' http://MY_APP_NAME-name-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api/state
+----
+
+* The Circuit Breaker issues the fallback response when you invoke the /api/greeting endpoint.
+
+----
+$ curl http://{app-name}-greeting-{project-name}.{oso-route-hostname}/api/greeting
+
+{"content":"Hello, Fallback!"}
+----
+
+* Restore the name {app-name}-name service to availability, execute an HTTP PUT request against the /api/state endpoint of the {app-name}-name service to set its state back to ok.
+
+----
+$ curl -X PUT -H "Content-Type: application/json" -d '{"state": "ok"}' http://MY_APP_NAME-name-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api/state
+----
+
+* Invoke the /api/greeting endpoint again. If the {app-name}-name service is available, you should receive the Hello World! greeting as the response:
+
+----
+$ curl http://MY_APP_NAME-greeting-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api/greeting
+
+{"content":"Hello, World!"}
+----
+
+
+== Using Hystrix Dashboard to Monitor the Circuit Breaker
+
+Hystrix Dashboard lets you easily monitor the health of your services in real time by aggregating Hystrix metrics data from an event stream and displaying them on one screen. For more detail, see the Hystrix Dashboard link:https://github.com/Netflix/Hystrix/wiki/Dashboard[wiki page].
+
+NOTE: You must have the Circuit Breaker booster application deployed before proceeding with the steps below.
+
+----
+$ oc login {link-oso-auth} --token=MYTOKEN
+----
+
+* To access the Web console, use your browser to navigate to your {OpenShiftOnline} URL.
+
+* Navigate to the project that contains your Circuit Breaker application.
+
+----
+$ oc project {project-name}
+----
+
+* Import the link:https://raw.githubusercontent.com/snowdrop/openshift-templates/master/hystrix-dashboard/hystrix-dashboard.yml[YAML template] for the Hystrix Dashboard application. You can do this by clicking _Add to Project_, then selecting the _Import YAML / JSON_ tab, and copying the contents of the YAML file into the text box. Alternatively, you can execute the following command.
+
+----
+oc create -f https://raw.githubusercontent.com/snowdrop/openshift-templates/master/hystrix-dashboard/hystrix-dashboard.yml
+----
+
+* Click the _Create_ button to create the Hystrix Dashboard application based on the template. Alternatively, you can execute the following command.
+
+----
+oc new-app --template=hystrix-dashboard
+----
+
+* Wait for the pod containing Hystrix Dashboard to deploy.
+
+* Obtain the route of your Hystrix Dashboard application.
+
+----
+oc get route hystrix-dashboard
+NAME                HOST/PORT                                                    PATH      SERVICES            PORT      TERMINATION   WILDCARD
+hystrix-dashboard   hystrix-dashboard-{project-name}.{osl-route-hostname}                 hystrix-dashboard   <all>                   None
+----
+
+* To access the Dashboard, open the Dashboard application route URL in your browser. Alternatively, you can navigate to the _Overview_ screen in the Web console and click the route URL in the header above the pod containing your Hystrix Dashboard application.
+
+To use the Dashboard to monitor the `{app-name}-greeting` service, replace the default event stream address with the following address and click the _Monitor Stream_ button.
+
+----
+http://{app-name}-greeting/hystrix.stream
+----
+
+
+
+
+
+
+ 
+
+
+
+
+
