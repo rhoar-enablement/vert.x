@@ -198,18 +198,6 @@ Hystrix Dashboard lets you easily monitor the health of your services in real ti
 
 NOTE: You must have the Circuit Breaker booster application deployed before proceeding with the steps below.
 
-----
-$ oc login {link-oso-auth} --token=MYTOKEN
-----
-
-* To access the Web console, use your browser to navigate to your {OpenShiftOnline} URL.
-
-* Navigate to the project that contains your Circuit Breaker application.
-
-----
-$ oc project {project-name}
-----
-
 * Import the link:https://raw.githubusercontent.com/snowdrop/openshift-templates/master/hystrix-dashboard/hystrix-dashboard.yml[YAML template] for the Hystrix Dashboard application. You can do this by clicking _Add to Project_, then selecting the _Import YAML / JSON_ tab, and copying the contents of the YAML file into the text box. Alternatively, you can execute the following command.
 
 ----
