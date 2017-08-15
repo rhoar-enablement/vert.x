@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.openshift.booster</groupId>
+		<artifactId>circuit-breaker-vertx</artifactId>
+		<version>6-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>integration-tests</artifactId>
+	<name>Integration Tests</name>
+	<description>Tests integration of both services</description>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.openshift.booster</groupId>
+			<artifactId>name-service</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.openshift.booster</groupId>
+			<artifactId>greeting-service</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+
+	<profiles>
+		<profile>
+			<id>openshift-it</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<configuration>
+							<systemPropertyVariables>
+								<nameServiceTemplate>${project.parent.basedir}/name-service/target/classes/META-INF/fabric8/openshift.yml</nameServiceTemplate>
+								<greetingServiceTemplate>${project.parent.basedir}/greeting-service/target/classes/META-INF/fabric8/openshift.yml</greetingServiceTemplate>
+							</systemPropertyVariables>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>
