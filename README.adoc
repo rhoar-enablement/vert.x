@@ -30,5 +30,6 @@ especially as it relates to OpenShift and containerized microservices.
 Here is a short list for the available exercises:
 
 * link:lab1/docs/04_01_rhoar_vertx_helloworld_local_Lab.adoc[Exercise 1 - Creating your first Vert.x Microservice - Local]
-* link:https://github.com/redhat-gpe/appmod_foundations/blob/master/modules/04_RHOAR_Vertx_Intro/04_02_rhoar_vertx_helloworld_openshift_Lab.adoc[Exercise 2 - Creating your first Vert.x Microservice on OpenShift]
-* link:https://github.com/redhat-gpe/appmod_foundations/blob/master/modules/04_RHOAR_Vertx_Intro/04_03_rhoar_vertx_configmap_openshift_Lab.adoc[Exercise 3 - ConfigMaps with Vert.x]
+* link:lab2/docs/04_02_rhoar_vertx_helloworld_openshift_Lab.adoc[Exercise 2 - Creating your first Vert.x Microservice on OpenShift]
+* link:lab3/docs/04_03_rhoar_vertx_configmap_openshift_Lab.adoc[Exercise 3 - ConfigMaps with Vert.x]
+* link:lab4/docs/04_04_rhoar_vertx_configmap_openshift_Lab.adoc[Exercise 4 - Health Checks with Vert.x]
