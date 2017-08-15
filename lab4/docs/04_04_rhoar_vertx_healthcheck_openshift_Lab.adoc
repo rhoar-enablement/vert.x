@@ -1,0 +1,319 @@
+:scrollbar:
+:data-uri:
+:toc2:
+
+= Red Hat OpenShift Application Runtimes - Vert.x Health Checks lab
+
+In this lab you will learn how to demonstrate the health check pattern through the use of probing. Probing is used to report the liveness and readiness or an application. 
+
+In this lab, you configure an application which exposes an HTTP health endpoint to issue HTTP requests. 
+
+* If the container is alive, according to the liveness probe on the health HTTP endpoint, the management platform receives 200 as return code and no further action is required. 
+
+* If the health HTTP endpoint does not return a response, for example if the JVM is no longer running or a thread is blocked, then the application is not considered alive according to the liveness probe. In that case, the platform kills the pod corresponding to that application and recreates a new pod to restart the application.
+
+* This lab also allows you to demonstrate and use a readiness probe. In cases where the application is running but is unable to handle requests, such as when the application returns a HTTP 503 response code during restart, this application is not considered ready according to the readiness probe. 
+
+* If the application is not considered ready by the readiness probe, requests are not routed to that application until it is considered ready according to the readiness probe.
+
+You will also deploy this project to the OpenShift Container Platform.
+
+.Requirements
+
+* Knowledge of OpenShift concepts
+
+== Health Service Checks
+
+When you deploy an application, its important to know if it is available and if it can start handling incoming requests. Implementing the health check pattern allows you to monitor the health of an application, which includes if an application is available and whether it is able to service requests.
+
+In order to understand the health check pattern, you need first understand the following concepts:
+
+=== Liveness
+
+Liveness defines whether an application is running or not. Sometimes a running application moves into an unresponsive or stopped state and needs to be restarted. Checking for liveness helps determine whether or not an application needs to be restarted.
+
+=== Readiness
+
+Readiness defines whether a running application can service requests. Sometimes a running application moves into an error or broken state where it can no longer service requests. Checking readiness helps determine whether or not requests should continue to be routed to that application.
+
+=== Fail-over
+
+Fail-over enables failures in servicing requests to be handled gracefully. If an application fails to service a request, that request and future requests can then fail-over or be routed to another application, which is usually a redundant copy of that same application.
+
+=== Resilience and Stability
+
+Resilience and Stability enable failures in servicing requests to be handled gracefully. If an application fails to service a request due to connection loss, in a resilient system that request can be retried after the connection is re-established.
+
+=== Probe
+
+A probe is a Kuberbetes action that periodically performs diagnostics on a running container.
+
+:numbered:
+
+== Find lab4 project files
+
+Each lab in this course is housed in separate directories. Using the command line, find and observe
+the files for this lab:
+
+    cd $HOME/vert.x/lab4
+
+IMPORTANT: Be sure to replace `$HOME` with the directory you chose to put the content in previous labs.
+
+== Open `lab4` using the IDE
+
+* Use your favorite IDE and open the project files for lab4 (maven project). 
+
+Once loaded, you should see the lab files and be able to navigate amongst the files. The components of this first project are laid out in different subdirectories according to Maven best practices:
+
+* `pom.xml` - The Maven project file
+* `src/main/java` - The source code to the project
+* `src/main/resources` - The static resource files referenced in the code
+
+== Review code for our HTTP verticle
+
+This verticle returns a hello world message. The verticle supports health checks and internal it uses a boolean variable to simulate its health.
+
+* In your IDE, open the file: `src/main/java/io.openshift.booster/HttpApplication.java`
+
+* Review the contents of this file
+
+* The *start()* method creates a health check handler:
+
+-----
+    HealthCheckHandler healthCheckHandler = HealthCheckHandler.create(vertx)
+        .register("server-online", fut -> fut.complete(online ? Status.OK() : Status.KO()));
+-----
+
+The HealthCheckHandler is part of the Vert.x project. It is located at `io.vertx.ext.healthchecks.HealthCheckHandler`
+
+The HealthCheckHandler computes the outcome status (`UP` or `DOWN`) . When the handler process a HTTP request, it computes the global outcome and build a HTTP response as follows:
+
+    204 - status is `UP` but no procedures installed (no payload)
+    200 - status is `UP`, the payload contains the result of the installed procedures
+    503 - status is `DOWN`, the payload contains the result of the installed procedures
+    500 - status is `DOWN`, the payload contains the result of the installed procedures, one of the procedure has failed
+
+Source: http://vertx.io/docs/apidocs/io/vertx/ext/healthchecks/HealthCheckHandler.html[HealthCheckHandler JavaDoc]
+
+* The *start()* method also creates the routes
+
+----
+Router router = Router.router(vertx);
+
+ 	...
+
+router.get("/api/greeting").handler(this::greeting);
+router.get("/api/killme").handler(this::killMe);
+router.get("/api/health/readiness").handler(rc -> rc.response().end("OK"));
+router.get("/api/health/liveness").handler(healthCheckHandler);
+router.get("/").handler(StaticHandler.create());
+----
+
+* Finally, the server is started with this
+
+----
+server = vertx
+    .createHttpServer()
+    .requestHandler(router::accept)
+    .listen(
+        config().getInteger("http.port", 8080), ar -> {
+          online = ar.succeeded();
+          future.handle(ar.mapEmpty());
+        });
+----
+
+* The verticle also has a method to simulate killing the service:
+
+----
+  private void killMe(RoutingContext rc) {
+    rc.response().end("Stopping HTTP server, Bye bye world !");
+    online = false;
+  }
+----
+
+* As mentioned earlier, the verticle's health / status is simulated using the boolean flag, `online`.
+
+* The verticle also has a *greeting()* method to return a helloworld response. This method leverages the boolean flag, `online`, to determine if the verticle is available.
+
+----
+  private void greeting(RoutingContext rc) {
+    if (!online) {
+      rc.response().setStatusCode(400).putHeader(CONTENT_TYPE, "text/plain").end("Not online");
+      return;
+    }
+
+    String name = rc.request().getParam("name");
+    if (name == null) {
+      name = "World";
+    }
+
+    JsonObject response = new JsonObject()
+        .put("content", String.format(template, name));
+
+    rc.response()
+        .putHeader(CONTENT_TYPE, "application/json; charset=utf-8")
+        .end(response.encodePrettily());
+}
+----
+
+=== Review Maven POM file
+
+. Review the `pom.xml` file, more specifically the configuration of the Fabric8 Vert.x plugin
+* The `vert.x:package` goal is attached to the `package` maven goal
+* The main verticle is set as a property `vertx.verticle` in the pom file.
+. Build the application with maven. From the command line:
++
+----
+$ mvn clean package
+----
+
+== Login to OpenShift via the CLI
+
+* If you are not logged into OpenShift, do so now:
+
+-----
+$ oc login ${YOUR-OPENSHIFT-SERVER} -u USER -p PASS
+-----
+
+Replace `${YOUR-OPENSHIFT-SERVER}` with the server name for your training environment. Be sure to replace `USER` and `PASS` with your supplied credentials and accept any security exceptions (which is never
+a good idea in a production scenario, but is fine for this lab).
+
+You should get a `Login successful` message indicating you've successfully logged in.
+
+== Create a new project
+
+OpenShift separates different projects using the concept of a _project_ (also known as a https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/[Kubernetes Namespace]).
+
+To house your project and keep it separate from other users, create a new project using your username as part of the project:
+
+* Create a new project
+
+-----
+$ oc new-project healthcheck-demo-userXX
+-----
+
+Be sure to replace `userXX` with your username.
+
+== Build and Deploy service to OpenShift
+
+It's time to build and deploy our service! To build and deploy:
+
+-----
+$ mvn clean fabric8:deploy -Popenshift
+-----
+
+* Check the status of the deployment in the OpenShift Web console, or using the CLI.
+
+----
+$ oc get pods
+----
+
+----
+NAME                             READY     STATUS      RESTARTS   AGE
+healthcheck-demo-1-m73d5       1/1       Running     0          30s
+----
+
+* Check the log of application pod to make sure that the application did start up correctly:
+
+----
+$ oc logs -f healthcheck-demo-1-m73d5
+----
+
+----
+Starting the Java application using /opt/run-java/run-java.sh ...
+...
+Aug 03, 2017 8:20:51 PM io.vertx.core.impl.launcher.commands.VertxIsolatedDeployer
+INFO: Succeeded in deploying verticle
+----
+
+== Testing the application
+
+Once you have the Eclipse Vert.x booster deployed, you will have a service that exposes the following REST endpoints.
+
+[options="header"]
+|=======
+|Endpoint | Description
+|`api/greeting` |This endpoint returns a JSON containing greeting of name parameter (or World as default value).
+|`api/killme` |This endpoint forces the service to become unresponsive which is meant to simulate a failure in the service.
+|=======
+
+
+* The following steps demonstrate how to verify the service availability and simulate a failure. This failure of an available service causes the OpenShift self-healing capabilities to be trigger on the service.
+
+* To exercise the application from outside of OpenShift, first discover the external hostname:
+
+----
+$ oc get routes
+----
+
+The hostname of the service will be different depending on your cluster, but in this example the hostname
+is `healthcheck-demo-user30.apps.83de.openshift.opentlc.com`.
+
+* Use curl to execute a GET request against the {app-name} service. You can also use a browser to do this.
+
+----
+$ curl http://{app-name}-{project-name}.{oso-route-hostname}/api/greeting
+
+{
+	"content":"Hello, World!"
+}
+----
+
+* Invoke the `/api/killme` endpoint and verify the availability of the `/api/greeting` endpoint shortly after that.
+
+* Invoking the `/api/killme` endpoint simulates an internal service failure and triggers the OpenShift self-healing capabilities. When invoking `/api/greeting` after simulating the failure, the service should return a HTTP status 503.
+
+----
+$ curl http://{app-name}-{project-name}.{oso-route-hostname}/api/killme
+
+Stopping HTTP server, Bye bye world !
+----
+
+(followed by)
+
+----
+$ curl http://{app-name}-{project-name}.{oso-route-hostname}/api/greeting
+
+Not online
+----
+
+* Use `oc get pods -w` to continuously watch the self-healing capabilities in action.
+
+* While invoking the service failure, you can watch the self-healing capabilities in action on OpenShift console, or with the oc client tools. You should see the number pods in a READY state move to zero (0/1) and after a short period (less than one minute) move back up to one (1/1). 
+
+* In addition the RESTARTS count increases every time you you invoke the service failure.
+
+----
+$ oc get pods -w
+----
+
+* You will see:
+
+----
+NAME                           READY     STATUS    RESTARTS   AGE
+{app-name}-1-26iy7   0/1       Running   5          18m
+{app-name}-1-26iy7   1/1       Running   5         19m
+----
+
+== Health Check Resources
+
+More background and related information on health checking can be found here:
+
+* https://docs.openshift.com/container-platform/latest/dev_guide/application_health.html[Overview of Application Health in Openshift]
+
+* https://kubernetes.io/docs/user-guide/walkthrough/k8s201/#health-checking[Health Checking in Kubernetes]
+
+* https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/[Kubernetes Liveness and Readiness Probes]
+
+* https://kubernetes.io/docs/api-reference/v1/definitions/#_v1_probe[Kubernetes Probes]
+
+
+
+
+
+ 
+
+
+
+
+

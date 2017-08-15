@@ -1,0 +1,294 @@
+:scrollbar:
+:data-uri:
+:toc2:
+
+= Red Hat OpenShift Application Runtimes - Vert.x Hello World lab
+
+In this lab you will learn how to develop a Vert.x Hello World microservice. You will also deploy this microservice to the OpenShift Container Platform.
+
+The goal is to deploy the application to OpenShift and understand how Vert.x and
+OpenShift work together for both the developer and operations personnel.
+
+You will also use the https://maven.fabric8.io/[Fabric8 Maven Plugin], which provides a simplified developer experience for both local development and development with OpenShift.
+
+.Requirements
+
+* Knowledge of OpenShift concepts
+
+:numbered:
+
+== Find lab2 project files
+
+Each lab in this course is housed in separate directories. Using the command line, find and observe
+the files for this lab:
+
+    $ cd $HOME/vert.x/lab2
+
+IMPORTANT: Be sure to replace `$HOME` with the directory you chose to put the content in previous labs.
+
+== Open `lab2` using the IDE
+
+* Use your favorite IDE and open the project files for lab2 (maven project). 
+
+Once loaded, you should see the lab files and be able to navigate amongst the files. The components
+of this first project are laid out in different subdirectories according to Maven best practices:
+
+* `pom.xml` - The Maven project file
+* `src/main/java` - The source code to the project
+* `src/main/resources` - The static resource files referenced in the code
+
+== Review code for the Hello HTTP verticle
+
+This verticle returns a hello world message.
+
+* In your IDE, open the file: `src/main/java/com/redhat/gpte/appmod/HelloHttpVerticle.java`
+
+----
+
+package com.redhat.gpte.appmod;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+
+public class HelloHttpVerticle extends AbstractVerticle {
+
+    @Override
+    public void start() {
+        Router router = Router.router(vertx);
+
+        router.get("/").handler(this::hello);
+        router.get("/:name").handler(this::hello);
+        
+        vertx.createHttpServer()
+            .requestHandler(router::accept)
+            .listen(8080);
+    }
+
+    private void hello(RoutingContext rc) {
+        String message = "Hello";
+
+        if (rc.pathParam("name") != null) {
+            message += " " + rc.pathParam("name");
+        }
+
+        JsonObject json = new JsonObject()
+            .put("message", message)
+            .put("served-by", System.getenv("HOSTNAME"));
+            
+        rc.response()
+            .putHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+            .end(json.encode());
+    }
+}
+
+
+----
+
+=== Packaging
+
+A convenient way to package and run Vert.x application is to build a fat jar (or uber-jar), which contains all the dependencies needed to run the application. +
+The fat jar is executable, and can be launched with `java -jar <application.jar>`
+
+When using maven, the Fabric8 Vert.x plugin (https://vmp.fabric8.io/) can be used to build the fat jar. +
+The Fabric8 Vert.x plugin adds MANIFEST.MF entries during the packaging process. These entries control how the application is launched. +
+The plugin adds the following entries to the MANIFEST.MF:
+
+* Main-Class : The main class used to start the application, defaults to _io.vertx.core.Launcher_
+* Main-Verticle : The main verticle, i.e. the entry point of your application
+
+=== Review Maven POM file
+
+. Review the `pom.xml` file, more specifically the configuration of the Fabric8 Vert.x plugin
+* The `vert.x:package` goal is attached to the `package` maven goal
+* The main verticle is set as a property `vertx.verticle` in the pom file.
+. Build the application with maven. From the command line:
++
+----
+$ mvn clean package
+----
+
+=== Deployment with Fabric8 Maven plugin
+
+The fabric8-maven-plugin brings Java applications on to Kubernetes and OpenShift. It provides a tight integration into Maven and benefits from the build configration already provided. This plugin focus on two tasks: Building Docker images and creating Kubernetes and OpenShift resource descriptors.
+
+The fabric8-maven-plugin uses the binary source build type, i.e. the artifact to be deployed is injected into the container from the local file system. 
+
+The plugin uses an auto-detection mechanism to determine which image to use for the application. If needed, this mechanism can be overridden in the plugin configuration, e.g. if you want to use another Docker image to run your application. For a Vert.x application, the fabric8-maven-plugin uses the `fabric8/s2i-java:2.0` images as build image.
+
+In the catalog project source code, the fabric8-maven-plugin is configured in the `OpenShift` Maven profile in the pom.xml file
+
+----
+  <profiles>
+    <profile>
+      <id>openshift</id>
+      <properties>
+        <test.to.exclude/>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>fabric8-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>fmp</id>
+                <goals>
+                  <goal>resource</goal>
+                  <goal>build</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+----
+
+The fabric8-maven-plugin can be configured with external configuration in the form of YAML resource descriptors which are located in the `src/main/fabric8` directory. The project uses this technique to define a Router object for the application, and to configure the health check probes on the Deployment object.
+
+
+== Login to OpenShift via the CLI
+
+Before you can build and deploy the project you must login to OpenShift via the CLI. As part of this course, you
+should have been given a URL to an OpenShift cluster, along with a username and password to use for the labs. To
+login to the CLI:
+
+-----
+$ oc login ${YOUR-OPENSHIFT-SERVER} -u USER -p PASS
+-----
+
+Be sure to replace `USER` and `PASS` with your supplied credentials and accept any security exceptions (which is never
+a good idea in a production scenario, but is fine for this lab).
+
+You should get a `Login successful` message indicating you've successfully logged in.
+
+== Create a new project
+
+OpenShift separates different projects using the concept of a _project_ (also known as a https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/[Kubernetes Namespace]).
+To house your project and keep it separate from other users, create a new project using your username as part of the project:
+
+-----
+$ oc new-project helloworld-http-userXX
+-----
+
+Be sure to replace `userXX` with your username.
+
+NOTE: It is possible to enable a multi-tenant cluster where users can create the same project names across the cluster, but this
+is not enabled for this lab. Consult the https://docs.openshift.org/latest/architecture/additional_concepts/sdn.html[docs] for more detail if interested.
+
+
+== Build and Deploy service to OpenShift
+
+It's time to build and deploy our service! To build and deploy:
+
+[source, bash]
+$ mvn clean fabric8:deploy -Popenshift
+
+. Check the status of the deployment in the OpenShift Web console, or using the CLI.
++
+----
+$ oc get pods
+----
++
+----
+NAME                             READY     STATUS      RESTARTS   AGE
+hello-microservice-1-m73d5       1/1       Running     0          30s
+----
++
+. Check the log of application pod to make sure that the application did start up correctly:
++
+----
+$ oc logs -f hello-microservice-1-m73d5
+----
++
+----
+Starting the Java application using /opt/run-java/run-java.sh ...
+...
+Aug 03, 2017 8:20:51 PM io.vertx.core.impl.launcher.commands.VertxIsolatedDeployer
+INFO: Succeeded in deploying verticle
+----
+
+=== Testing the hello-microservice application
+
+You can test the hello-microservice application using curl.
+
+To exercise the hello-microservice from outside of OpenShift, first discover the external hostname:
+
+----
+$ oc describe routes hello-microservice | grep "Requested" | awk '{$1=""; print $3}'
+----
+
+----
+hello-microservice-helloworld-http-user30.apps.83de.openshift.opentlc.com
+----
+
+The hostname of the service will be different depending on your cluster, but in this example the hostname
+is `hello-microservice-helloworld-http-user30.apps.83de.openshift.opentlc.com`. 
+
+. To test the endpoint, use the following curl command
++
+
+----
+$ curl -X GET "$HELLOWORLD_URL/John"
+----
++
+----
+{"message":"Hello John","served-by": "hello-microservice-1-9r8uv"}
+----
+
+Be sure to replace `$HELLOWORLD_URL` with your actual hostname from the `oc get routes` command.
+
+=== Scaling Up and Scaling Down
+
+OpenShift gives you the ability to scale up and scale down your application. You can make use of manual scaling or auto-scaling. In this section, we will manually scale our application.
+
+==== Scaling Up
+You can set the number of replicas using the oc command line:
+
+----
+# scale up to 3 replicas
+oc scale --replicas=3 dc hello-microservice 
+----
+
+NOTE: You can also set the number of replicas using the OpenShift dashboard.
+
+Now, let's test our application
+
+----
+$ curl -X GET "$HELLOWORLD_URL/John"
+----
+
+You should see something like:
+
+----
+{"message":"hello John","served-by": "hello-microservice-1-9r8uv"}
+----
+
+If you refresh several times, you will see different values for "served-by". Your request is being handled by a different instances. OpenShift balances the loaded between the different instances.
+
+==== Scaling Down
+
+Let's scale down our application to a single replica.
+
+----
+# scale up to 1 replicas
+oc scale --replicas=1 dc hello-microservice 
+----
+
+Now, test the application.
+
+----
+$ curl -X GET "$HELLOWORLD_URL/John"
+----
+
+You should see something like:
+
+----
+{"message":"hello John","served-by": "hello-microservice-1-9r8uv"}
+----
+
+If you refresh several times, you will see the same value for "served-by". This confirms that only one instance is available to handle the request.

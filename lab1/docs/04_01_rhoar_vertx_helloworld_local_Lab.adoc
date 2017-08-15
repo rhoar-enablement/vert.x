@@ -1,0 +1,190 @@
+:noaudio:
+:scrollbar:
+:data-uri:
+:toc2:
+
+== Lab 1: Your first Vert.x Project
+
+image:images/Vert.x_Logo.svg.png[width="300"]
+
+In this lab, you will develop a HelloWorld vertical to create your first Vert.x
+application. You will run the application locally. 
+
+Later labs will introduce you to OpenShift and containerized microservices.
+
+.Requirements
+
+* Knowledge of Java language
+* Developer environment with a modern web browser, Git, Maven, a text editor or IDE,
+
+.Conventions
+
+- Commands that you execute in the Linux shell are preceeded by a `$` character. Do not include this when you are typing or copying/pasting the commands.
+- Hostnames, usernames and passwords, and OpenShift resource names will be different for each participant. Take care to substitute the correct values for your environment when doing the exercises.
+- Screenshots may differ slightly from actual product.
+
+:numbered:
+
+== Clone the Repository
+
+To get started, use `git` to copy the necessary lab files to your local environment:
+
+    $ cd $HOME
+    $ git clone https://github.com/rhoar-enablement/vert.x
+
+This will create a copy of the lab materials in the `vert.x` subdirectory.
+
+    $ cd $HOME/vert.x
+    $ ls
+    lab1 lab2 ...
+
+Each lab is self-contained within each of the subdirectories.
+
+NOTE: You can choose any directory to house your lab code, these instructions use `$HOME` as an example.
+
+
+== Open `lab1` using the IDE
+
+Each lab in this course is housed in separate directories. 
+
+* Use your favorite IDE and open the project files for lab1. The files 
+
+Once loaded, you should see the lab files and be able to navigate amongst the files. The components
+of this first project are laid out in different subdirectories according to Maven best practices:
+
+* `pom.xml` - The Maven project file
+* `src/main/java` - The source code to the project
+* `src/main/resources` - The static resource files referenced in the code
+
+== Examine the Maven POM file
+
+* In your IDE, open the file: `pom.xml`
+
+The Maven POM file `pom.xml` defines the structure of the project and how to build and run it. The major components of the POM file include:
+
+`<project>`:: Identifiers and descriptions of the project
+`<properties>`:: Maven directives and project values (such as versions) referenced later in the POM file
+`<dependencies>`:: Defines the needed components for the app. 
+`<build>`:: Directives for building the project.
+
+== Add Code for the Verticle
+
+* In your IDE, open the file: `src/main/java/io/vertx/sample/MyFirstVerticle.java`
+
+* Add the following code to this file (copy/paste):
+
+-----
+package io.vertx.sample;
+
+import io.vertx.core.AbstractVerticle;
+
+public class MyFirstVerticle extends AbstractVerticle {
+
+    @Override
+    public void start() {
+
+      // Handle each incoming HTTP request
+      
+    vertx.createHttpServer()
+    .requestHandler(req -> {
+            req.response().end(
+              "Hello: Time on the server is " 
+              + java.time.LocalDateTime.now());
+    })
+    .listen(8080); 
+
+    }
+
+}
+-----
+
+
+
+== Run your App
+
+* To run this application, type the following:
+
+[source, bash]
+$ mvn compile vertx:run
+
+* The Maven build process will display a message once the server is up and running.
+
+[source, bash]
+[INFO] --- vertx-maven-plugin:1.0.5:run (default-cli) @ my-first-vertx-app ---
+[INFO] Launching Vert.x Application
+[INFO] Vert.x application redeploy enabled
+[INFO] Observing path:/Users/chaddarby/_foobar2/vert.x/lab1/src/main
+[INFO] Aug 2, 2017 5:30:10 PM io.vertx.core.impl.launcher.commands.Watcher
+[INFO] INFO: Watched paths: [/Users/chaddarby/_foobar2/vert.x/lab1/target/classes]
+[INFO] Aug 2, 2017 5:30:10 PM io.vertx.core.impl.launcher.commands.Watcher
+[INFO] INFO: Starting the vert.x application in redeploy mode
+[INFO] Starting vert.x application...
+[INFO] eaa8cf6f-9524-4fe7-8b75-ee92816879a7-redeploy
+[INFO] Aug 2, 2017 5:30:11 PM io.vertx.core.impl.launcher.commands.VertxIsolatedDeployer
+[INFO] INFO: Succeeded in deploying verticle
+
+== Test your App
+
+* To test your app, open a web browser and navigate to: http://localhost:8080
+
+You will see a hello message in the browser.
+
+NOTE: Any changes that you make to the Java source code are automatically reloaded.
+
+* Make a change to the service to give a different response message. For example include your name in the response. You will see the following console logs
+
+[source, bash]
+[INFO] Aug 2, 2017 5:16:53 PM io.vertx.core.impl.launcher.commands.Watcher
+[INFO] INFO: Redeployment done in 75 ms.
+[INFO] Aug 2, 2017 5:16:54 PM io.vertx.core.impl.launcher.commands.VertxIsolatedDeployer
+[INFO] INFO: Succeeded in deploying verticle
+
+* In your browser, reload the page. Verify the updated response.
+
+* Stop the service, by pressing CTRL-C in the terminal window
+
+== Building and running the Uberjar
+
+* You can also run your Vert.x application as an Uberjar:
+
+[source, bash]
+$ mvn clean package
+
+You'll see several lines of output, and see that your project will auto-detect the necessary components needed to run the app later.
+
+
+[source, bash]
+% ls target/*.jar
+target/my-first-vertx-app-1.0.0-SNAPSHOT-swarm.jar
+
+This file contains our project along with the necessary runtime to execute it. 
+
+* Let's run the project using plain Java:
+
+[source, bash]
+$ java -jar target/my-first-vertx-app-1.0-SNAPSHOT.jar
+
+If successful, you should see:
+
+Aug 2, 2017 5:35:08 PM io.vertx.core.impl.launcher.commands.VertxIsolatedDeployer
+INFO: Succeeded in deploying verticle
+
+This is your indication that the project is now running and ready to accept requests.
+
+== Test the Application
+
+* At this point, you can open a web browser and navigate to: http://localhost:8080
+
+You should see your application output.
+
+Congratulations!
+
+== Stop the service
+
+* To stop the service, simply press CTRL-C in the terminal window where the service is executing.
+
+CAUTION: Be careful to not leave services running that you are no longer using in this course, as port conflicts may arise later on.
+
+
+
+
