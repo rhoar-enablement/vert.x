@@ -43,13 +43,18 @@ Once loaded, you should see the lab files and be able to navigate amongst the fi
 * `src/main/java` - The source code to the project
 * `src/main/resources` - The static resource files referenced in the code
 
-== Review code for our HTTP verticle
+== Review code for our verticles
 
 This verticle returns a hello world message. The verticle supports health checks and internal it uses a boolean variable to simulate its health.
 
-* In your IDE, open the file: `src/main/java/io.openshift.booster/HttpApplication.java`
+* In your IDE, open the file: `greeting-service/src/main/java/io.openshift.booster/GreetingServiceVerticle.java`
 
 * Review the contents of this file
+
+* In your IDE, open the file: `greeting-service/src/main/java/io.openshift.booster/NameServiceVerticle.java`
+
+* Review the contents of this file
+
 
 === Review Maven POM file
 
@@ -118,9 +123,6 @@ Both the {app-name}-greeting and {app-name}-name pods should have a status of Ru
 ----
 $ oc get routes
 ----
-
-The hostname of the service will be different depending on your cluster, but in this example the hostname
-is `healthcheck-demo-user30.apps.83de.openshift.opentlc.com`.
 
 * Once you have the Eclipse Vert.x booster deployed, you have the following services running:
 
