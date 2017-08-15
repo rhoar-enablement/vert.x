@@ -124,31 +124,31 @@ is `healthcheck-demo-user30.apps.83de.openshift.opentlc.com`.
 
 * Once you have the Eclipse Vert.x booster deployed, you have the following services running:
 
-{app-name}-name
+*{app-name}-name*
 
-    Exposes the following endpoints:
+Exposes the following endpoints:
 
-        the /api/name endpoint, which returns a name when this service is working, and an error when this service is set up to demonstrate failure.
+the /api/name endpoint, which returns a name when this service is working, and an error when this service is set up to demonstrate failure.
 
-        the /api/state endpoint, which controls the behavior of the /api/name endpoint and determines whether the service works correctly or demonstrates failure.
+the /api/state endpoint, which controls the behavior of the /api/name endpoint and determines whether the service works correctly or demonstrates failure.
 
-{app-name}-greeting
+*{app-name}-greeting*
 
-    Exposes the following endpoints:
+Exposes the following endpoints:
 
-        the /api/greeting endpoint that you can call to get a personalized greeting response.
+the /api/greeting endpoint that you can call to get a personalized greeting response.
 
-        When you call the /api/greeting endpoint, it issues a call against the /api/name endpoint of the {app-name}-name service as part of processing your request. The call made against the /api/name endpoint is protected by the Circuit Breaker.
+When you call the /api/greeting endpoint, it issues a call against the /api/name endpoint of the {app-name}-name service as part of processing your request. The call made against the /api/name endpoint is protected by the Circuit Breaker.
 
-        If the remote endpoint is available, it responds with an HTTP code 200 and you receive the following greeting:
+If the remote endpoint is available, it responds with an HTTP code 200 and you receive the following greeting:
 
-        {"content":"Hello, World!"}
+{"content":"Hello, World!"}
 
-        If the remote endpoint is unavailable, it responds with an HTTP code 500 and you receive a predefined fallback response:
+If the remote endpoint is unavailable, it responds with an HTTP code 500 and you receive a predefined fallback response:
 
-        {"content":"Hello, Fallback!"}
+{"content":"Hello, Fallback!"}
 
-        the /api/cb-state endpoint, which returns the state of the Circuit Breaker. The state can be open or closed.
+the /api/cb-state endpoint, which returns the state of the Circuit Breaker. The state can be open or closed.
 
 * The following steps demonstrate how to verify the service availability, simulate a failure and receive a fallback response.
 
