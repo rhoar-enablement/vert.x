@@ -136,19 +136,19 @@ the /api/state endpoint, which controls the behavior of the /api/name endpoint a
 
 Exposes the following endpoints:
 
-the /api/greeting endpoint that you can call to get a personalized greeting response.
+the `/api/greeting` endpoint that you can call to get a personalized greeting response.
 
-When you call the /api/greeting endpoint, it issues a call against the /api/name endpoint of the {app-name}-name service as part of processing your request. The call made against the /api/name endpoint is protected by the Circuit Breaker.
+When you call the `/api/greeting endpoint`, it issues a call against the /api/name endpoint of the {app-name}-name service as part of processing your request. The call made against the `/api/name` endpoint is protected by the Circuit Breaker.
 
 If the remote endpoint is available, it responds with an HTTP code 200 and you receive the following greeting:
 
-{"content":"Hello, World!"}
+`{"content":"Hello, World!"}`
 
 If the remote endpoint is unavailable, it responds with an HTTP code 500 and you receive a predefined fallback response:
 
-{"content":"Hello, Fallback!"}
+`{"content":"Hello, Fallback!"}`
 
-the /api/cb-state endpoint, which returns the state of the Circuit Breaker. The state can be open or closed.
+the `/api/cb-state` endpoint, which returns the state of the Circuit Breaker. The state can be open or closed.
 
 * The following steps demonstrate how to verify the service availability, simulate a failure and receive a fallback response.
 
@@ -163,13 +163,13 @@ $ curl http://MY_APP_NAME-greeting-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api
 {"content":"Hello, World!"}
 ----
 
-* To simulate the failure of the {app-name}-name service, execute an HTTP PUT request against the /api/state endpoint of the {app-name}-name service to set its state to fail.
+* To simulate the failure of the `{app-name}-name` service, execute an HTTP PUT request against the /api/state endpoint of the `{app-name}-name` service to set its state to fail.
 
 ----
 $ curl -X PUT -H "Content-Type: application/json" -d '{"state": "fail"}' http://MY_APP_NAME-name-MY_PROJECT_NAME.OPENSHIFT_ONLINE_HOSTNAME/api/state
 ----
 
-* The Circuit Breaker issues the fallback response when you invoke the /api/greeting endpoint.
+* The Circuit Breaker issues the fallback response when you invoke the `/api/greeting` endpoint.
 
 ----
 $ curl http://{app-name}-greeting-{project-name}.{oso-route-hostname}/api/greeting
@@ -215,7 +215,8 @@ oc new-app --template=hystrix-dashboard
 * Obtain the route of your Hystrix Dashboard application.
 
 ----
-oc get route hystrix-dashboard
+$ oc get route hystrix-dashboard
+
 NAME                HOST/PORT                                                    PATH      SERVICES            PORT      TERMINATION   WILDCARD
 hystrix-dashboard   hystrix-dashboard-{project-name}.{osl-route-hostname}                 hystrix-dashboard   <all>                   None
 ----
