@@ -33,4 +33,4 @@ Here is a short list for the available exercises:
 * link:lab2/docs/04_02_rhoar_vertx_helloworld_openshift_Lab.adoc[Exercise 2 - Creating your first Vert.x Microservice on OpenShift]
 * link:lab3/docs/04_03_rhoar_vertx_configmap_openshift_Lab.adoc[Exercise 3 - ConfigMaps with Vert.x]
 * link:lab4/docs/04_04_rhoar_vertx_healthcheck_openshift_Lab.adoc[Exercise 4 - Health Checks with Vert.x]
-* link:lab5/docs/04_05_rhoar_vertx_circuitbreaker_Lab.adoc[Exercise 4 - Health Checks with Vert.x]
+* link:lab5/docs/04_05_rhoar_vertx_circuitbreaker_Lab.adoc[Exercise 5 - Circuit Breaker with Vert.x]
