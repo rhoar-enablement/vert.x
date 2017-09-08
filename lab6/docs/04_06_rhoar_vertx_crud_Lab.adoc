@@ -133,6 +133,9 @@ crud-vertx        crud-vertx-product-catalog-70.apps.41dc.openshift.opentlc.com 
 
 * You should see a list of products as shown below.
 
+image::images/vertx-crud.png[height=500]
+
+
 * Feel free to interact with your application.
 
 * Congratulations, the lab is complete
