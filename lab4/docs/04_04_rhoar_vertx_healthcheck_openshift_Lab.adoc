@@ -264,7 +264,7 @@ $ curl http://{app-name}-{project-name}.{oso-route-hostname}/api/greeting
 * Invoking the `/api/killme` endpoint simulates an internal service failure and triggers the OpenShift self-healing capabilities. When invoking `/api/greeting` after simulating the failure, the service should return a HTTP status 503.
 
 ----
-$ curl http://{app-name}-{project-name}.{oso-route-hostname}/api/killme
+$ curl $YOUR-APP-URL/api/killme
 
 Stopping HTTP server, Bye bye world !
 ----
@@ -272,7 +272,7 @@ Stopping HTTP server, Bye bye world !
 (followed by)
 
 ----
-$ curl http://{app-name}-{project-name}.{oso-route-hostname}/api/greeting
+$ curl $YOUR-APP-URL/api/greeting
 
 Not online
 ----
