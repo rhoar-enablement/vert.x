@@ -35,20 +35,20 @@ The verticle, CrudApplication, exposes the RESTful endpoints for our application
 
 * In your IDE, open the file: `lab6/src/main/java/io.openshift.booster/CrudApplication.java`
 
-* This code performs the following:
+** This code performs the following:
 
-** Creates a router object.
-** Performs validation of the :id parameter
-** Implements a basic REST CRUD mapping
-** Sets up a health check
-** Configures handlers for the web interface
-** Creates a JDBC client
+*** Creates a router object.
+*** Performs validation of the :id parameter
+*** Implements a basic REST CRUD mapping
+*** Sets up a health check
+*** Configures handlers for the web interface
+*** Creates a JDBC client
 
 * In your IDE, open the file: `lab6/src/main/java/io.openshift.booster/service/impl/JdbcProductStore.java`
 
-* This code handles the database access for your application.
+** This code handles the database access for your application.
 
-* Review the code for the CRUD database features
+** Review the code for the CRUD database features
 
 == Review code for Web Interface
 
