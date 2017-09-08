@@ -33,7 +33,7 @@ Once loaded, you should see the lab files and be able to navigate amongst the fi
 
 The verticle, CrudApplication, exposes the RESTful endpoints for our application.
 
-* In your IDE, open the file: `lab6/src/main/java/io.openshift.booster/CrudApplication.java`
+* In your IDE, open the file: `lab6/src/main/java/io/openshift/booster/CrudApplication.java`
 
 ** This code performs the following:
 
@@ -44,7 +44,7 @@ The verticle, CrudApplication, exposes the RESTful endpoints for our application
 *** Configures handlers for the web interface
 *** Creates a JDBC client
 
-* In your IDE, open the file: `lab6/src/main/java/io.openshift.booster/service/impl/JdbcProductStore.java`
+* In your IDE, open the file: `lab6/src/main/java/io/openshift/booster/service/impl/JdbcProductStore.java`
 
 ** This code handles the database access for your application.
 
