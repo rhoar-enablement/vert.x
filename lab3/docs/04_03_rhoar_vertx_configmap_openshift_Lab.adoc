@@ -198,7 +198,7 @@ is `configmap-demo-user30.apps.83de.openshift.opentlc.com`.
 * To test the endpoint, use the following curl command
 
 ----
-$ curl "$YOUR-APP-URL/api/greeting"
+$ curl $YOUR-APP-URL/api/greeting
 ----
 
 ----
@@ -223,7 +223,7 @@ $ oc edit configmap app-config
 * Use curl to execute a GET request against the booster with the updated ConfigMap configuration. 
 
 ----
-$ curl http://{app-name}-{project-name}.{oso-route-hostname}/api/greeting
+$ curl $YOUR-APP-URL/api/greeting
 ----
 
 * You should see your updated greeting.
