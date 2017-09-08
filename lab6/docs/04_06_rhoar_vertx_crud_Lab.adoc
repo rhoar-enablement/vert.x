@@ -56,12 +56,10 @@ This application uses AngularJS for a web interface. AngularJS is a JavaScript f
 
 image::images/vertx-crud.png[height=500]
 
-NOTE:
-Full details of AngularJS is beyond the scope of this course.
+* Review the AngularJS file
+** In your IDE, open the file: `lab6/src/main/webroot/index.html`
 
-* In your IDE, open the file: `lab6/src/main/webroot/index.html`
-
-* This code renders a web view and provides button/handlers to call the REST endpoints.
+** This code renders a web view and provides button/handlers to call the REST endpoints.
 
 
 == Review Maven POM file
