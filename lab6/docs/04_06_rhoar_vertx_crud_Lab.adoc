@@ -138,4 +138,4 @@ image::images/vertx-crud.png[height=500]
 
 * Feel free to interact with your application.
 
-* Congratulations, the lab is complete
+* Congratulations, the lab is complete :-)
