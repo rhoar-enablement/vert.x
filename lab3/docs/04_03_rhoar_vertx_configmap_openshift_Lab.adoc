@@ -65,7 +65,7 @@ This is a properties file that defines properties for a `message` and `level`. O
 
 This verticle returns a hello world message, based on information from the ConfigMap. It also configures the logger level based on ConfigMap info.
 
-* In your IDE, open the file: `src/main/java/io.openshift.booster/HttpApplication.java`
+* In your IDE, open the file: `src/main/java/io/openshift/booster/HttpApplication.java`
 
 * Review the contents of this file
 
